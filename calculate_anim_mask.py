@@ -6,12 +6,11 @@ import os
 
 
 def calculate_anim_mask(batch_size):
-    if os.path.exists(f"utils/anim_mask_{batch_size}.npy"):
-        anim_mask = np.load(f"utils/anim_mask_{batch_size}.npy")
-        if anim_mask.shape[0] == batch_size:
-            return torch.from_numpy(anim_mask)
+    if os.path.exists(f"utils/anim_mask.npy"):
+        anim_mask = np.load(f"utils/anim_mask.npy")
+        return torch.from_numpy(np.tile(anim_mask, (batch_size, 108, 1, 1)))
         
-    print(f"Creating anim_mask, batch_size:{batch_size}")
+    print(f"Creating anim_mask")
     
     dataset = torchvision.datasets.ImageFolder(root="data", transform=transforms.Compose([transforms.ToTensor(),
                                                                                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),]))
@@ -32,6 +31,8 @@ def calculate_anim_mask(batch_size):
             real_img_cubes = cur_img_cube if real_img_cubes is None else torch.cat((real_img_cubes, cur_img_cube), dim=0)
         anim_mask = np.logical_and(anim_mask, (real_img_cubes.mean(axis=0).mean(axis=0).numpy() == 1)).astype(np.uint8)
     anim_mask[:1,:] = 1
+    anim_mask = (anim_mask == 1)
     
-    return torch.from_numpy(np.tile(anim_mask, (batch_size, 108, 1, 1))) == 1
+    np.save("utils/anim_mask.npy", anim_mask)
+    return torch.from_numpy(np.tile(anim_mask, (batch_size, 108, 1, 1)))
 
