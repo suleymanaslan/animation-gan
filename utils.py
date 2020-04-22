@@ -98,9 +98,19 @@ def animate_img_batch(img_batch, anim_file, get_img_cubes=True, training_outputs
     return anim_file
 
 
-def get_sample_frames(anim_frames, from_gif=False):
+def get_sample_frames(anim_frames, from_gif=False, multiple=False):
     if from_gif:
+        if multiple:
+            return np.hstack((np.vstack((anim_frames[0][:64,:64], anim_frames[0][:64,64:64+64], anim_frames[0][64:64+64,:64], anim_frames[0][64:64+64,64:64+64])), 
+                              np.vstack((anim_frames[3][:64,:64], anim_frames[3][:64,64:64+64], anim_frames[3][64:64+64,:64], anim_frames[3][64:64+64,64:64+64])), 
+                              np.vstack((anim_frames[9][:64,:64], anim_frames[9][:64,64:64+64], anim_frames[9][64:64+64,:64], anim_frames[9][64:64+64,64:64+64])), 
+                              np.vstack((anim_frames[10][:64,:64], anim_frames[10][:64,64:64+64], anim_frames[10][64:64+64,:64], anim_frames[10][64:64+64,64:64+64])), 
+                              np.vstack((anim_frames[18][:64,:64], anim_frames[18][:64,64:64+64], anim_frames[18][64:64+64,:64], anim_frames[18][64:64+64,64:64+64])), 
+                              np.vstack((anim_frames[19][:64,:64], anim_frames[19][:64,64:64+64], anim_frames[19][64:64+64,:64], anim_frames[19][64:64+64,64:64+64])), 
+                              np.vstack((anim_frames[27][:64,:64], anim_frames[27][:64,64:64+64], anim_frames[27][64:64+64,:64], anim_frames[27][64:64+64,64:64+64])), 
+                              np.vstack((anim_frames[30][:64,:64], anim_frames[30][:64,64:64+64], anim_frames[30][64:64+64,:64], anim_frames[30][64:64+64,64:64+64]))))
         return np.hstack((anim_frames[0], anim_frames[3], anim_frames[9], anim_frames[10], anim_frames[18], anim_frames[19], anim_frames[27], anim_frames[30]))
+    assert multiple == False
     anim_frames = anim_frames.numpy().transpose(1, 2, 0)
     return np.hstack((np.hstack((anim_frames[64*0:64*(0+1),64*0:64*(0+1)], anim_frames[64*0:64*(0+1),64*3:64*(3+1)])), 
                       np.hstack((anim_frames[64*1:64*(1+1),64*0:64*(0+1)], anim_frames[64*1:64*(1+1),64*1:64*(1+1)])), 
