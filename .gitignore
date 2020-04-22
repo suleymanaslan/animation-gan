@@ -128,3 +128,4 @@ data/train/
 trained_models/
 utils/*.npy
 results.txt
+outputs/
