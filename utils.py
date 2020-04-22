@@ -97,3 +97,13 @@ def animate_img_batch(img_batch, anim_file, get_img_cubes=True, training_outputs
     imageio.mimsave(anim_file, frames, 'GIF', fps=8)
     return anim_file
 
+
+def get_sample_frames(anim_frames, from_gif=False):
+    if from_gif:
+        return np.hstack((anim_frames[0], anim_frames[3], anim_frames[9], anim_frames[10], anim_frames[18], anim_frames[19], anim_frames[27], anim_frames[30]))
+    anim_frames = anim_frames.numpy().transpose(1, 2, 0)
+    return np.hstack((np.hstack((anim_frames[64*0:64*(0+1),64*0:64*(0+1)], anim_frames[64*0:64*(0+1),64*3:64*(3+1)])), 
+                      np.hstack((anim_frames[64*1:64*(1+1),64*0:64*(0+1)], anim_frames[64*1:64*(1+1),64*1:64*(1+1)])), 
+                      np.hstack((anim_frames[64*2:64*(2+1),64*0:64*(0+1)], anim_frames[64*2:64*(2+1),64*1:64*(1+1)])), 
+                      np.hstack((anim_frames[64*3:64*(3+1),64*0:64*(0+1)], anim_frames[64*3:64*(3+1),64*3:64*(3+1)]))))
+
