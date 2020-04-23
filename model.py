@@ -37,6 +37,38 @@ class Generator2D(nn.Module):
     def forward(self, input):
         return self.main(input)
 
+
+class Generator2D_10(nn.Module):
+    def __init__(self, latent_size=100, input_channels=108, feature_map_size=64):
+        super(Generator2D_10, self).__init__()
+        net_channels = [latent_size,
+                        feature_map_size*18, 
+                        feature_map_size*16, 
+                        feature_map_size*14, 
+                        feature_map_size*12,
+                        feature_map_size*10,
+                        feature_map_size*8,
+                        feature_map_size*6,
+                        feature_map_size*4,
+                        feature_map_size*2,
+                        input_channels]
+        self.main = nn.Sequential(
+            nn.ConvTranspose2d(net_channels[0], net_channels[1], 2, 1, padding=0, output_padding=0), nn.BatchNorm2d(net_channels[1]), nn.ReLU(True),
+            nn.ConvTranspose2d(net_channels[1], net_channels[2], 3, 1, padding=0, output_padding=0), nn.BatchNorm2d(net_channels[2]), nn.ReLU(True),
+            nn.ConvTranspose2d(net_channels[2], net_channels[3], 3, 2, padding=1, output_padding=1), nn.BatchNorm2d(net_channels[3]), nn.ReLU(True),
+            nn.ConvTranspose2d(net_channels[3], net_channels[4], 3, 1, padding=1, output_padding=0), nn.BatchNorm2d(net_channels[4]), nn.ReLU(True),
+            nn.ConvTranspose2d(net_channels[4], net_channels[5], 3, 2, padding=1, output_padding=1), nn.BatchNorm2d(net_channels[5]), nn.ReLU(True),
+            nn.ConvTranspose2d(net_channels[5], net_channels[6], 3, 1, padding=1, output_padding=0), nn.BatchNorm2d(net_channels[6]), nn.ReLU(True),
+            nn.ConvTranspose2d(net_channels[6], net_channels[7], 5, 2, padding=2, output_padding=1), nn.BatchNorm2d(net_channels[7]), nn.ReLU(True),
+            nn.ConvTranspose2d(net_channels[7], net_channels[8], 5, 1, padding=2, output_padding=0), nn.BatchNorm2d(net_channels[8]), nn.ReLU(True),
+            nn.ConvTranspose2d(net_channels[8], net_channels[9], 7, 2, padding=3, output_padding=1), nn.BatchNorm2d(net_channels[9]), nn.ReLU(True),
+            nn.ConvTranspose2d(net_channels[9], net_channels[10], 7, 1, padding=3, output_padding=0), nn.Tanh()
+        )
+
+    def forward(self, input):
+        return self.main(input)
+
+
 class Generator3D(nn.Module):
     def __init__(self, latent_size=100, input_channels=3, feature_map_size=64):
         super(Generator3D, self).__init__()
@@ -94,6 +126,37 @@ class Discriminator2D(nn.Module):
             )
             
 
+    def forward(self, input):
+        return self.main(input)
+
+
+class Discriminator2D_10(nn.Module):
+    def __init__(self, input_channels=108, output_channels=1, feature_map_size=64):
+        super(Discriminator2D_10, self).__init__()
+        net_channels = [input_channels,
+                        feature_map_size*1, 
+                        feature_map_size*2, 
+                        feature_map_size*4, 
+                        feature_map_size*6,
+                        feature_map_size*8,
+                        feature_map_size*10,
+                        feature_map_size*12,
+                        feature_map_size*14,
+                        feature_map_size*16,
+                        output_channels]
+        self.main = nn.Sequential(
+            nn.Conv2d(net_channels[0], net_channels[1], 7, 1, 3), nn.BatchNorm2d(net_channels[1]), nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(net_channels[1], net_channels[2], 7, 2, 3), nn.BatchNorm2d(net_channels[2]), nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(net_channels[2], net_channels[3], 5, 1, 2), nn.BatchNorm2d(net_channels[3]), nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(net_channels[3], net_channels[4], 5, 2, 2), nn.BatchNorm2d(net_channels[4]), nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(net_channels[4], net_channels[5], 3, 1, 1), nn.BatchNorm2d(net_channels[5]), nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(net_channels[5], net_channels[6], 3, 2, 1), nn.BatchNorm2d(net_channels[6]), nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(net_channels[6], net_channels[7], 3, 1, 1), nn.BatchNorm2d(net_channels[7]), nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(net_channels[7], net_channels[8], 3, 2, 1), nn.BatchNorm2d(net_channels[8]), nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(net_channels[8], net_channels[9], 3, 1, 0), nn.BatchNorm2d(net_channels[9]), nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(net_channels[9], net_channels[10], 2, 1, 0), nn.Sigmoid()
+        )
+        
     def forward(self, input):
         return self.main(input)
 
