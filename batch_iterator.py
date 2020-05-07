@@ -16,7 +16,6 @@ class BatchIterator:
         self.size = self.real_images.shape[0]
         self.epochs = 0
         self.cursor = 0
-        self.shuffle()
 
     def shuffle(self):
         shuffle_arrays((self.real_images))
