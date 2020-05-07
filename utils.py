@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import cv2
 import imageio
+from datetime import datetime
 
 import torchvision.datasets
 import torchvision.transforms as transforms
@@ -49,13 +50,16 @@ def convert_to_img_cube(real_inputs, batch_size):
 
 
 def preprocess_data(batch_size=64, data_size=40_000):
+    assert data_size % batch_size == 0
     dataset = torchvision.datasets.ImageFolder(root="data", transform=transforms.Compose([transforms.ToTensor()]))
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
-    processed_data = None
+    processed_data = torch.empty([data_size, 108, 64, 64], dtype=torch.uint8)
     for batch_index, (real_images, _) in enumerate(dataloader, 0):
         real_images = convert_to_img_plane((real_images * 255).type(torch.ByteTensor), batch_size)
-        processed_data = real_images if processed_data is None else torch.cat((processed_data, real_images), dim=0)
-        if processed_data.shape[0] >= data_size:
+        processed_data[batch_index*batch_size:(batch_index+1)*batch_size] = real_images
+        if (batch_index + 1) % 10 == 0:
+            print(f"{datetime.now()} {(batch_index+1)*batch_size}")
+        if (batch_index+1)*batch_size >= data_size:
             break
     return processed_data
 
