@@ -3,6 +3,9 @@ import torch
 import cv2
 import imageio
 
+import torchvision.datasets
+import torchvision.transforms as transforms
+
 
 def get_img_cube(img_batch, img_i):
     cur_img = img_batch[img_i]
@@ -43,6 +46,18 @@ def convert_to_img_cube(real_inputs, batch_size):
         cur_img_cube = cur_img_cube.unsqueeze(0)
         real_img_cubes = cur_img_cube if real_img_cubes is None else torch.cat((real_img_cubes, cur_img_cube), dim=0)
     return real_img_cubes
+
+
+def preprocess_data(batch_size=64, data_size=40_000):
+    dataset = torchvision.datasets.ImageFolder(root="data", transform=transforms.Compose([transforms.ToTensor()]))
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    processed_data = None
+    for batch_index, (real_images, _) in enumerate(dataloader, 0):
+        real_images = convert_to_img_plane((real_images * 255).type(torch.ByteTensor), batch_size)
+        processed_data = real_images if processed_data is None else torch.cat((processed_data, real_images), dim=0)
+        if processed_data.shape[0] >= data_size:
+            break
+    return processed_data
 
 
 def animate_img_cube(input_img_cube, anim_file, training_outputs=False):

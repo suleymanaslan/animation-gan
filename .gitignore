@@ -129,3 +129,5 @@ trained_models/
 utils/*.npy
 results.txt
 outputs/
+preprocessed_data/
+
