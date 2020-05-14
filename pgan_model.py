@@ -46,6 +46,9 @@ class PGANGenerator(nn.Module):
         
         self.to_rgb_layers.append(EqualizedConv2d(depth_new_scale, self.dim_output, 1, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
         
+    def set_alpha(self, alpha):
+        self.alpha = alpha
+        
     def forward(self, x):
         print(f"input, x:{x.shape}")
         
@@ -85,7 +88,7 @@ class PGANGenerator(nn.Module):
         
         if self.alpha > 0:
             x = self.alpha * y + (1.0-self.alpha) * x
-            print(f"blend, x:{x.shape}")
+            print(f"blend, x:{x.shape}, alpha:{self.alpha}")
             
         if self.generation_activation is not None:
             x = self.generation_activation(x)
@@ -132,6 +135,9 @@ class PGANDiscriminator(nn.Module):
         self.scale_layers[-1].append(EqualizedConv2d(depth_new_scale, depth_last_scale, 3, padding=1, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
         
         self.from_rgb_layers.append(EqualizedConv2d(self.dim_input, depth_new_scale, 1, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
+    
+    def set_alpha(self, alpha):
+        self.alpha = alpha
         
     def forward(self, x, get_feature=False):
         print(f"input, x:{x.shape}")
@@ -160,7 +166,7 @@ class PGANDiscriminator(nn.Module):
             if merge_layer:
                 merge_layer = False
                 x = self.alpha * y + (1-self.alpha) * x
-                print(f"merge, x:{x.shape}")
+                print(f"merge, x:{x.shape}, alpha:{self.alpha}")
                 
             shift -= 1
             
