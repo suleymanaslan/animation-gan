@@ -130,4 +130,4 @@ utils/*.npy
 results.txt
 outputs/
 preprocessed_data/
-
+pytorch_GAN_zoo/
