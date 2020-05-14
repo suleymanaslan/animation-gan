@@ -2,8 +2,10 @@
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from pytorch_GAN_zoo.models.networks.custom_layers import EqualizedConv2d, EqualizedLinear, NormalizationLayer, Upscale2d
 from pytorch_GAN_zoo.models.utils.utils import num_flat_features
+from pytorch_GAN_zoo.models.networks.mini_batch_stddev_module import miniBatchStdDev
 
 
 class PGANGenerator(nn.Module):
@@ -81,3 +83,85 @@ class PGANGenerator(nn.Module):
             print(f"g act, x:{x.shape}")
         
         return x
+
+
+class PGANDiscriminator(nn.Module):
+    def __init__(self):
+        super(PGANDiscriminator, self).__init__()
+        self.depth_scale0 = 512
+        self.equalized_lr = True
+        self.init_bias_to_zero = True
+        self.dim_input = 3
+        self.size_decision_layer = 1
+        self.mini_batch_normalization = True
+        self.dim_entry_scale0 = self.depth_scale0 + 1
+        self.scales_depth = [self.depth_scale0]
+        
+        self.scale_layers = nn.ModuleList()
+        
+        self.from_rgb_layers = nn.ModuleList()
+        self.from_rgb_layers.append(EqualizedConv2d(self.dim_input, self.depth_scale0, 1, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
+        
+        self.merge_layers = nn.ModuleList()
+        
+        self.decision_layer = EqualizedLinear(self.scales_depth[0], self.size_decision_layer, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero)
+        
+        self.group_scale0 = nn.ModuleList()
+        self.group_scale0.append(EqualizedConv2d(self.dim_entry_scale0, self.depth_scale0, 3, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero, padding=1))
+        self.group_scale0.append(EqualizedLinear(self.depth_scale0 * 16, self.depth_scale0, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
+    
+        self.alpha = 0
+        
+        self.leaky_relu = torch.nn.LeakyReLU(0.2)
+        
+    def forward(self, x, get_feature=False):
+        print(f"input, x:{x.shape}")
+        
+        if self.alpha > 0 and len(self.from_rgb_layers) > 1:
+            y = F.avg_pool2d(x, (2, 2))
+            print(f"pool, y:{y.shape}")
+            y = self.leaky_relu(self.from_rgb_layers[- 2](y))
+            print(f"from rgb, y:{y.shape}")
+            
+        x = self.leaky_relu(self.from_rgb_layers[-1](x))
+        print(f"from rgb, x:{x.shape}")
+        
+        merge_layer = self.alpha > 0 and len(self.scale_layers) > 1
+        
+        shift = len(self.from_rgb_layers) - 2
+        
+        for group_layer in reversed(self.scale_layers):
+            for layer in group_layer:
+                x = self.leaky_relu(layer(x))
+                print(f"conv, x:{x.shape}")
+                
+            x = nn.AvgPool2d((2, 2))(x)
+            print(f"pool, x:{x.shape}")
+            
+            if merge_layer:
+                merge_layer = False
+                x = self.alpha * y + (1-self.alpha) * x
+                print(f"merge, x:{x.shape}")
+                
+            shift -= 1
+            
+        if self.mini_batch_normalization:
+            x = miniBatchStdDev(x)
+            print(f"bnorm, x:{x.shape}")
+            
+        x = self.leaky_relu(self.group_scale0[0](x))
+        print(f"gs, x:{x.shape}")
+        
+        x = x.view(-1, num_flat_features(x))
+        print(f"flat, x:{x.shape}")
+        
+        x = self.leaky_relu(self.group_scale0[1](x))
+        print(f"gs, x:{x.shape}")
+        
+        out = self.decision_layer(x)
+        print(f"out:{out.shape}")
+        
+        if not get_feature:
+            return out
+        
+        return out, x
