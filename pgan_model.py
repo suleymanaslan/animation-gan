@@ -26,7 +26,7 @@ class PGANGenerator(nn.Module):
         self.format_layer = EqualizedLinear(self.dim_latent, 16 * self.scales_depth[0], equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero)
         
         self.group_scale0 = nn.ModuleList()
-        self.group_scale0.append(EqualizedConv2d(self.depth_scale0, self.depth_scale0, 3, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero, padding=1))
+        self.group_scale0.append(EqualizedConv2d(self.depth_scale0, self.depth_scale0, 3, padding=1, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
         
         self.alpha = 0
         
@@ -35,6 +35,16 @@ class PGANGenerator(nn.Module):
         self.normalization_layer = NormalizationLayer()
         
         self.generation_activation = None
+        
+    def add_scale(self, depth_new_scale):
+        depth_last_scale = self.scales_depth[-1]
+        self.scales_depth.append(depth_new_scale)
+        
+        self.scale_layers.append(nn.ModuleList())
+        self.scale_layers[-1].append(EqualizedConv2d(depth_last_scale, depth_new_scale, 3, padding=1, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
+        self.scale_layers[-1].append(EqualizedConv2d(depth_new_scale, depth_new_scale, 3, padding=1, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
+        
+        self.to_rgb_layers.append(EqualizedConv2d(depth_new_scale, self.dim_output, 1, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
         
     def forward(self, x):
         print(f"input, x:{x.shape}")
@@ -58,7 +68,6 @@ class PGANGenerator(nn.Module):
             print(f"upscale, y:{y.shape}")
             
         for scale, layer_group in enumerate(self.scale_layers, 0):
-            print(f"scale:{scale}, layer_group:{layer_group}")
             x = Upscale2d(x)
             print(f"upscale, x:{x.shape}")
             for conv_layer in layer_group:
@@ -107,12 +116,22 @@ class PGANDiscriminator(nn.Module):
         self.decision_layer = EqualizedLinear(self.scales_depth[0], self.size_decision_layer, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero)
         
         self.group_scale0 = nn.ModuleList()
-        self.group_scale0.append(EqualizedConv2d(self.dim_entry_scale0, self.depth_scale0, 3, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero, padding=1))
+        self.group_scale0.append(EqualizedConv2d(self.dim_entry_scale0, self.depth_scale0, 3, padding=1, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
         self.group_scale0.append(EqualizedLinear(self.depth_scale0 * 16, self.depth_scale0, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
     
         self.alpha = 0
         
         self.leaky_relu = torch.nn.LeakyReLU(0.2)
+        
+    def add_scale(self, depth_new_scale):
+        depth_last_scale = self.scales_depth[-1]
+        self.scales_depth.append(depth_new_scale)
+        
+        self.scale_layers.append(nn.ModuleList())
+        self.scale_layers[-1].append(EqualizedConv2d(depth_new_scale, depth_new_scale, 3, padding=1, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
+        self.scale_layers[-1].append(EqualizedConv2d(depth_new_scale, depth_last_scale, 3, padding=1, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
+        
+        self.from_rgb_layers.append(EqualizedConv2d(self.dim_input, depth_new_scale, 1, equalized=self.equalized_lr, initBiasToZero=self.init_bias_to_zero))
         
     def forward(self, x, get_feature=False):
         print(f"input, x:{x.shape}")
@@ -150,13 +169,13 @@ class PGANDiscriminator(nn.Module):
             print(f"bnorm, x:{x.shape}")
             
         x = self.leaky_relu(self.group_scale0[0](x))
-        print(f"gs, x:{x.shape}")
+        print(f"conv, x:{x.shape}")
         
         x = x.view(-1, num_flat_features(x))
         print(f"flat, x:{x.shape}")
         
         x = self.leaky_relu(self.group_scale0[1](x))
-        print(f"gs, x:{x.shape}")
+        print(f"linear, x:{x.shape}")
         
         out = self.decision_layer(x)
         print(f"out:{out.shape}")
