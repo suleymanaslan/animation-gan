@@ -2,10 +2,15 @@ import numpy as np
 import torch
 import cv2
 import imageio
+from skimage.transform import resize
 from datetime import datetime
 
 import torchvision.datasets
 import torchvision.transforms as transforms
+
+
+def resize_batch(batch_img, size, batch_size):
+    return resize(batch_img.permute(0, 2, 3, 1), (batch_size, size, size))
 
 
 def get_img_cube(img_batch, img_i):
@@ -57,6 +62,42 @@ def preprocess_data(batch_size=64, data_size=40_000):
     for batch_index, (real_images, _) in enumerate(dataloader, 0):
         real_images = convert_to_img_plane((real_images * 255).type(torch.ByteTensor), batch_size)
         processed_data[batch_index*batch_size:(batch_index+1)*batch_size] = real_images
+        if (batch_index + 1) % 10 == 0:
+            print(f"{datetime.now()} {(batch_index+1)*batch_size}")
+        if (batch_index+1)*batch_size >= data_size:
+            break
+    return processed_data
+
+
+def preprocess_scaled_data(scale, batch_size=64, data_size=40_000):
+    assert data_size % batch_size == 0
+    
+    img_sizes = {0: 4,
+                 1: 8, 
+                 2: 16, 
+                 3: 32, 
+                 4: 64}
+    
+    dataset = torchvision.datasets.ImageFolder(root="data", transform=transforms.Compose([transforms.ToTensor()]))
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    
+    if scale >= 3:
+        processed_data = torch.empty([data_size, 108, img_sizes[scale], img_sizes[scale]], dtype=torch.uint8)
+    else:
+        processed_data = torch.empty([data_size, 108, img_sizes[scale], img_sizes[scale]], dtype=torch.float32)
+        normalize_t = torch.Tensor([0.5])
+        
+    for batch_index, (real_images, _) in enumerate(dataloader, 0):
+        real_images = convert_to_img_plane((real_images * 255).type(torch.ByteTensor), batch_size)
+        real_images = resize_batch(real_images, img_sizes[scale], batch_size)
+        
+        if scale >= 3:
+            real_images = torch.from_numpy(real_images.transpose((0, 3, 1, 2))).type(torch.ByteTensor)
+        else:
+            real_images = (torch.from_numpy(real_images.transpose((0, 3, 1, 2))).type(torch.FloatTensor) - normalize_t) / normalize_t
+        
+        processed_data[batch_index*batch_size:(batch_index+1)*batch_size] = real_images
+        
         if (batch_index + 1) % 10 == 0:
             print(f"{datetime.now()} {(batch_index+1)*batch_size}")
         if (batch_index+1)*batch_size >= data_size:
