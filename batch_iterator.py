@@ -9,6 +9,11 @@ def shuffle_arrays(arrays, set_seed=-1):
         rstate.shuffle(arr)
 
 
+def fast_shuffle(array):
+    shuffler = np.random.permutation(len(array))
+    return array[shuffler]
+
+
 class BatchIterator:
     def __init__(self, real_images, batch_size):
         self.real_images = real_images
@@ -16,15 +21,20 @@ class BatchIterator:
         self.size = self.real_images.shape[0]
         self.epochs = 0
         self.cursor = 0
+        self.shuffle()
 
     def shuffle(self):
-        shuffle_arrays((self.real_images))
+        self.indices = np.random.permutation(self.size)
         self.cursor = 0
 
     def next_batch(self):
-        batch_images = self.real_images[self.cursor:self.cursor + self.batch_size]
+        batch_images = self.shuffled_batch()
         self.cursor += self.batch_size
         if self.cursor + self.batch_size - 1 >= self.size:
             self.epochs += 1
             self.shuffle()
         return batch_images
+    
+    def shuffled_batch(self):
+        batch_indices = self.indices[self.cursor:self.cursor + self.batch_size]
+        return self.real_images[batch_indices]
