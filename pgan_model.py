@@ -14,7 +14,7 @@ class PGANGenerator(nn.Module):
         self.depth_scale0 = 512
         self.equalized_lr = True
         self.init_bias_to_zero = True
-        self.dim_output = 3
+        self.dim_output = 108
         self.dim_latent = 512
         self.scales_depth = [self.depth_scale0]
         
@@ -103,7 +103,7 @@ class PGANDiscriminator(nn.Module):
         self.depth_scale0 = 512
         self.equalized_lr = True
         self.init_bias_to_zero = True
-        self.dim_input = 3
+        self.dim_input = 108
         self.size_decision_layer = 1
         self.mini_batch_normalization = True
         self.dim_entry_scale0 = self.depth_scale0 + 1
