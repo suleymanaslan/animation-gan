@@ -50,49 +50,49 @@ class PGANGenerator(nn.Module):
         self.alpha = alpha
         
     def forward(self, x):
-        print(f"input, x:{x.shape}")
+#         print(f"input, x:{x.shape}")
         
         x = self.normalization_layer(x)
         x = x.view(-1, num_flat_features(x))
         x = self.leaky_relu(self.format_layer(x))
         x = x.view(x.size()[0], -1, 4, 4)
         x = self.normalization_layer(x)
-        print(f"format, x:{x.shape}")
+#         print(f"format, x:{x.shape}")
         
         for conv_layer in self.group_scale0:
             x = self.leaky_relu(conv_layer(x))
-            print(f"conv, x:{x.shape}")
+#             print(f"conv, x:{x.shape}")
             x = self.normalization_layer(x)
         
         if self.alpha > 0 and len(self.scale_layers) == 1:
             y = self.to_rgb_layers[-2](x)
-            print(f"to rgb, y:{y.shape}")
+#             print(f"to rgb, y:{y.shape}")
             y = Upscale2d(y)
-            print(f"upscale, y:{y.shape}")
+#             print(f"upscale, y:{y.shape}")
             
         for scale, layer_group in enumerate(self.scale_layers, 0):
             x = Upscale2d(x)
-            print(f"upscale, x:{x.shape}")
+#             print(f"upscale, x:{x.shape}")
             for conv_layer in layer_group:
                 x = self.leaky_relu(conv_layer(x))
-                print(f"conv, x:{x.shape}")
+#                 print(f"conv, x:{x.shape}")
                 x = self.normalization_layer(x)
             if self.alpha > 0 and scale == (len(self.scale_layers) - 2):
                 y = self.to_rgb_layers[-2](x)
-                print(f"to rgb, y:{y.shape}")
+#                 print(f"to rgb, y:{y.shape}")
                 y = Upscale2d(y)
-                print(f"upscale, y:{y.shape}")
+#                 print(f"upscale, y:{y.shape}")
                 
         x = self.to_rgb_layers[-1](x)
-        print(f"to rgb, x:{x.shape}")
+#         print(f"to rgb, x:{x.shape}")
         
         if self.alpha > 0:
             x = self.alpha * y + (1.0-self.alpha) * x
-            print(f"blend, x:{x.shape}, alpha:{self.alpha}")
+#             print(f"blend, x:{x.shape}, alpha:{self.alpha}")
             
         if self.generation_activation is not None:
             x = self.generation_activation(x)
-            print(f"g act, x:{x.shape}")
+#             print(f"g act, x:{x.shape}")
         
         return x
 
@@ -140,16 +140,16 @@ class PGANDiscriminator(nn.Module):
         self.alpha = alpha
         
     def forward(self, x, get_feature=False):
-        print(f"input, x:{x.shape}")
+#         print(f"input, x:{x.shape}")
         
         if self.alpha > 0 and len(self.from_rgb_layers) > 1:
             y = F.avg_pool2d(x, (2, 2))
-            print(f"pool, y:{y.shape}")
+#             print(f"pool, y:{y.shape}")
             y = self.leaky_relu(self.from_rgb_layers[- 2](y))
-            print(f"from rgb, y:{y.shape}")
+#             print(f"from rgb, y:{y.shape}")
             
         x = self.leaky_relu(self.from_rgb_layers[-1](x))
-        print(f"from rgb, x:{x.shape}")
+#         print(f"from rgb, x:{x.shape}")
         
         merge_layer = self.alpha > 0 and len(self.scale_layers) > 1
         
@@ -158,33 +158,33 @@ class PGANDiscriminator(nn.Module):
         for group_layer in reversed(self.scale_layers):
             for layer in group_layer:
                 x = self.leaky_relu(layer(x))
-                print(f"conv, x:{x.shape}")
+#                 print(f"conv, x:{x.shape}")
                 
             x = nn.AvgPool2d((2, 2))(x)
-            print(f"pool, x:{x.shape}")
+#             print(f"pool, x:{x.shape}")
             
             if merge_layer:
                 merge_layer = False
                 x = self.alpha * y + (1-self.alpha) * x
-                print(f"merge, x:{x.shape}, alpha:{self.alpha}")
+#                 print(f"merge, x:{x.shape}, alpha:{self.alpha}")
                 
             shift -= 1
             
         if self.mini_batch_normalization:
             x = miniBatchStdDev(x)
-            print(f"bnorm, x:{x.shape}")
+#             print(f"bnorm, x:{x.shape}")
             
         x = self.leaky_relu(self.group_scale0[0](x))
-        print(f"conv, x:{x.shape}")
+#         print(f"conv, x:{x.shape}")
         
         x = x.view(-1, num_flat_features(x))
-        print(f"flat, x:{x.shape}")
+#         print(f"flat, x:{x.shape}")
         
         x = self.leaky_relu(self.group_scale0[1](x))
-        print(f"linear, x:{x.shape}")
+#         print(f"linear, x:{x.shape}")
         
         out = self.decision_layer(x)
-        print(f"out:{out.shape}")
+#         print(f"out:{out.shape}")
         
         if not get_feature:
             return out
