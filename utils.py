@@ -92,6 +92,7 @@ def preprocess_scaled_data(scale, batch_size=64, data_size=40_000):
         real_images = resize_batch(real_images, img_sizes[scale], batch_size)
         
         if scale >= 3:
+            real_images = real_images * 255
             real_images = torch.from_numpy(real_images.transpose((0, 3, 1, 2))).type(torch.ByteTensor)
         else:
             real_images = (torch.from_numpy(real_images.transpose((0, 3, 1, 2))).type(torch.FloatTensor) - normalize_t) / normalize_t
